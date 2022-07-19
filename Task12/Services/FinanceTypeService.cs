@@ -9,15 +9,15 @@ namespace Task12.Services;
 
 public interface IFinanceTypeService
 {
-    Task<List<FinanceTypeViewModel>> GetFinanceTypes();
-    Task<List<FinanceTypeViewModel>> GetExpencesTypes();
-    Task<List<FinanceTypeViewModel>> GetIncomeTypes();
+    Task<List<FinanceTypeViewModel>> GetListTypesAsync();
+    Task<List<FinanceTypeViewModel>> GetExpencesTypesAsync();
+    Task<List<FinanceTypeViewModel>> GetIncomeTypesAsync();
 
-    Task<List<FinanceTypeViewModel>> AddFinanceType(FinanceTypeCreateDto financeType);
+    Task<List<FinanceTypeViewModel>> AddFinanceTypeAsync(FinanceTypeCreateDto financeType);
 
-    Task<bool> DeleteFinanceType(int id);
+    Task<bool> DeleteFinanceTypeAsync(int id);
 
-    Task<List<FinanceTypeViewModel>> UpdateFinanceType(FinanceTypeUpdateDto financeType);
+    Task<bool> UpdateFinanceTypeAsync(FinanceTypeUpdateDto financeType);
 }
 
 public class FinanceTypeService : IFinanceTypeService
@@ -33,7 +33,7 @@ public class FinanceTypeService : IFinanceTypeService
     }
 
 
-    public async Task<List<FinanceTypeViewModel>> AddFinanceType(FinanceTypeCreateDto newFinanceType)
+    public async Task<List<FinanceTypeViewModel>> AddFinanceTypeAsync(FinanceTypeCreateDto newFinanceType)
     {
 
         FinanceType? financeType = new FinanceType();
@@ -44,18 +44,18 @@ public class FinanceTypeService : IFinanceTypeService
         await db.Types.AddAsync(financeType);
         await db.SaveChangesAsync();
 
-        return await GetFinanceTypes();
+        return await GetListTypesAsync();
     }
 
 
-    public async Task<List<FinanceTypeViewModel>> UpdateFinanceType(FinanceTypeUpdateDto newFinanceType)
+    public async Task<bool> UpdateFinanceTypeAsync(FinanceTypeUpdateDto newFinanceType)
     {
 
         FinanceType? financeType = await db.Types.FindAsync(newFinanceType.Id);
 
-        if (financeType == null)
+        if (financeType is null)
         {
-            return new List<FinanceTypeViewModel>();
+            return false;
         }
 
         financeType.OperationType = newFinanceType.OperationType;
@@ -64,21 +64,21 @@ public class FinanceTypeService : IFinanceTypeService
         db.Types.Update(financeType);
         await db.SaveChangesAsync();
 
-        return await GetFinanceTypes();
+        return true;
     }
 
 
-    public async Task<bool> DeleteFinanceType(int id)
+    public async Task<bool> DeleteFinanceTypeAsync(int id)
     {
         FinanceType? financeType = await db.Types.FindAsync(id);
 
-        if (financeType == null)
+        if (financeType is null)
         {
             return false;
         }
 
         List<Record> records = await db.Records.Where(p => p.TypeId == id).ToListAsync();
-        if (records.Count != 0)
+        if (records.Any())
         {
             return false;
         }
@@ -90,11 +90,11 @@ public class FinanceTypeService : IFinanceTypeService
     }
 
 
-    public async Task<List<FinanceTypeViewModel>> GetExpencesTypes()
+    public async Task<List<FinanceTypeViewModel>> GetExpencesTypesAsync()
     {
         List<FinanceType> financeTypes = await db.Types.Where(p => !p.OperationType).ToListAsync();
 
-        if (financeTypes.Count == 0)
+        if (!financeTypes.Any())
         {
             return new List<FinanceTypeViewModel>();
         }
@@ -106,11 +106,11 @@ public class FinanceTypeService : IFinanceTypeService
         return financeTypesVM;
     }
 
-    public async Task<List<FinanceTypeViewModel>> GetIncomeTypes()
+    public async Task<List<FinanceTypeViewModel>> GetIncomeTypesAsync()
     {
         List<FinanceType> financeTypes = await db.Types.Where(p => p.OperationType == true).ToListAsync();
 
-        if (financeTypes.Count == 0)
+        if (!financeTypes.Any())
         {
             return new List<FinanceTypeViewModel>();
         }
@@ -122,11 +122,11 @@ public class FinanceTypeService : IFinanceTypeService
         return financeTypesVM;
     } 
 
-    public async Task<List<FinanceTypeViewModel>> GetFinanceTypes()
+    public async Task<List<FinanceTypeViewModel>> GetListTypesAsync()
     {
         List<FinanceType> financeTypes = await db.Types.ToListAsync();
 
-        if (financeTypes.Count == 0)
+        if (!financeTypes.Any())
         {
             return new List<FinanceTypeViewModel>();
         }

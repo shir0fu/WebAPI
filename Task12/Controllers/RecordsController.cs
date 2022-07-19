@@ -17,92 +17,92 @@ namespace Task12.Controllers
 
 
         [HttpGet("records")]
-        public async Task<IActionResult> GetAllRecords()
+        public async Task<IActionResult> GetAllRecordsAsync()
         {
-            List<RecordViewModel> json = await _service.GetAllRecords();
+            List<RecordViewModel> list = await _service.GetAllRecordsAsync();
 
-            if (json.Count != 0)
+            if (list.Any())
             {
-                return Ok(json);
+                return Ok(list);
             }
             return NotFound(new { message = "Records not found" });
         }
 
 
         [HttpPost("records/add")]
-        public async Task<IActionResult> AddRecord([FromBody] RecordCreateDto newRecord)
+        public async Task<IActionResult> AddRecordAsync([FromBody] RecordCreateDto newRecord)
         {
-            return Ok(await _service.AddRecord(newRecord));
+            return Ok(await _service.AddRecordAsync(newRecord));
         }
 
 
         [HttpDelete("records/delete/{id}")]
-        public async Task<IActionResult> DeleteRecord(int id)
+        public async Task<IActionResult> DeleteRecordAsync(int id)
         {
-            bool res = await _service.DeleteRecord(id);
+            bool res = await _service.DeleteRecordAsync(id);
             if (res)
             {
-                return Ok(new { message = "Record deleted" });
+                return Ok();
             }
-            return NotFound(new { message = "Delete failed" });
+            return BadRequest(new { message = "Delete failed" });
         }
 
 
         [HttpPut("records/change")]
-        public async Task<IActionResult> ChangeRecord([FromBody] RecordUpdateDto newRecord)
+        public async Task<IActionResult> ChangeRecordAsync([FromBody] RecordUpdateDto newRecord)
         {
-            List<RecordViewModel> json = await _service.UpdateRecord(newRecord);
-            if (json.Count != 0)
+            bool res = await _service.UpdateRecordAsync(newRecord);
+            if (res)
             {
-                return Ok(json);
+                return Ok();
             }
-            return NotFound(new { message = "Record not found" });
+            return BadRequest(new { message = "Record not found" });
         }
 
 
         [HttpGet("/records/daily/list")]
-        public async Task<IActionResult> DayReport([FromQuery] string date)
+        public async Task<IActionResult> DayReportAsync([FromQuery] string date)
         {
-            List<RecordViewModel> json = await _service.CurrentDateReport(date);
-            if (json.Count != 0)
+            List<RecordViewModel> list = await _service.CurrentDateReportAsync(date);
+            if (list.Any())
             {
-                return Ok(json);
+                return Ok(list);
             }
             return NotFound(new { message = "Incorrect date, or records for this date not found" });
         }
 
 
         [HttpGet("/records/daily/total")]
-        public async Task<IActionResult> DayTotal([FromQuery] string date)
+        public async Task<IActionResult> DayTotalAsync([FromQuery] string date)
         {
-            var json = await _service.CurrentDateTotals(date);
-            if (json != null)
+            var total = await _service.CurrentDateTotalsAsync(date);
+            if (total != null)
             {
-                return Ok(json);
+                return Ok(total);
             }
             return NotFound(new { message = "Incorrect date, or records for this date not found" });
         }
 
 
         [HttpGet("/records/range/list")]
-        public async Task<IActionResult> RangeReport([FromQuery] string startDate, [FromQuery] string endDate)
+        public async Task<IActionResult> RangeReportAsync([FromQuery] string startDate, [FromQuery] string endDate)
         {
-            List<RecordViewModel> json = await _service.RangeDateReport(startDate, endDate);
-            if (json.Count != 0)
+            List<RecordViewModel> list = await _service.RangeDateReportAsync(startDate, endDate);
+            if (list.Any())
             {
-                return Ok(json);
+                return Ok(list);
             }
             return NotFound(new { message = "Incorrect dates, or records for this dates not found" });
         }
 
 
         [HttpGet("/records/range/total")]
-        public async Task<IActionResult> RangeTotal([FromQuery] string startDate, [FromQuery] string endDate)
+        public async Task<IActionResult> RangeTotalAsync([FromQuery] string startDate, [FromQuery] string endDate)
         {
-            var json = await _service.RangeDateTotals(startDate, endDate);
-            if (json != null)
+            var total = await _service.RangeDateTotalsAsync(startDate, endDate);
+            if (total != null)
             {
-                return Ok(json);
+                return Ok(total);
             }
             return NotFound(new { message = "Incorrect dates, or records for this dates not found" });
         }

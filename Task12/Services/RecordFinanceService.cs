@@ -9,17 +9,17 @@ namespace Task12.Services;
 
 public interface IRecordFinanceService
 {
-    Task<List<RecordViewModel>> AddRecord(RecordCreateDto record);
-    Task<List<RecordViewModel>> UpdateRecord(RecordUpdateDto record);
-    Task<bool> DeleteRecord(int id);
+    Task<List<RecordViewModel>> AddRecordAsync(RecordCreateDto record);
+    Task<bool> UpdateRecordAsync(RecordUpdateDto record);
+    Task<bool> DeleteRecordAsync(int id);
 
-    Task<List<RecordViewModel>> RangeDateReport(string startDate, string endDate);
-    Task<TotalIncomeOrExpences> RangeDateTotals(string startDate, string endDate);
+    Task<List<RecordViewModel>> RangeDateReportAsync(string startDate, string endDate);
+    Task<TotalIncomeOrExpences> RangeDateTotalsAsync(string startDate, string endDate);
 
-    Task<TotalIncomeOrExpences> CurrentDateTotals(string date);
-    Task<List<RecordViewModel>> CurrentDateReport(string date);
+    Task<TotalIncomeOrExpences> CurrentDateTotalsAsync(string date);
+    Task<List<RecordViewModel>> CurrentDateReportAsync(string date);
 
-    Task<List<RecordViewModel>> GetAllRecords();
+    Task<List<RecordViewModel>> GetAllRecordsAsync();
 }
 
 public class RecordFinanceService : IRecordFinanceService
@@ -36,7 +36,7 @@ public class RecordFinanceService : IRecordFinanceService
     }
 
 
-    public async Task<List<RecordViewModel>> AddRecord(RecordCreateDto record)
+    public async Task<List<RecordViewModel>> AddRecordAsync(RecordCreateDto record)
     {
         Record? newRecord = new Record();
 
@@ -48,15 +48,15 @@ public class RecordFinanceService : IRecordFinanceService
         await db.Records.AddAsync(newRecord);
         await db.SaveChangesAsync();
 
-        return await GetAllRecords();
+        return await GetAllRecordsAsync();
     }
 
 
-    public async Task<bool> DeleteRecord(int id)
+    public async Task<bool> DeleteRecordAsync(int id)
     {
         Record? record = await db.Records.FindAsync(id);
 
-        if (record == null)
+        if (record is null)
         {
             return false;
         }
@@ -69,13 +69,13 @@ public class RecordFinanceService : IRecordFinanceService
     }
 
 
-    public async Task<List<RecordViewModel>> UpdateRecord(RecordUpdateDto newRecord)
+    public async Task<bool> UpdateRecordAsync(RecordUpdateDto newRecord)
     {
         Record? record = await db.Records.FindAsync(newRecord.Id);
 
-        if (record == null)
+        if (record is null)
         {
-            return new List<RecordViewModel>();
+            return false;
         }
 
         record.Value = newRecord.Value;
@@ -86,11 +86,11 @@ public class RecordFinanceService : IRecordFinanceService
         db.Records.Update(record);
         await db.SaveChangesAsync();
 
-        return await GetAllRecords();
+        return true;
     }
 
 
-    public async Task<List<RecordViewModel>> CurrentDateReport(string date)
+    public async Task<List<RecordViewModel>> CurrentDateReportAsync(string date)
     {
         bool res = DateTime.TryParse(date, out DateTime comparsionDate);
         if (!res)
@@ -100,7 +100,7 @@ public class RecordFinanceService : IRecordFinanceService
 
         List<Record> records = await db.Records.Where(p => p.Date == comparsionDate).ToListAsync();
 
-        if (records.Count == 0)
+        if (!records.Any())
         {
             return new List<RecordViewModel>();
         }
@@ -114,7 +114,7 @@ public class RecordFinanceService : IRecordFinanceService
     }
 
 
-    public async Task<TotalIncomeOrExpences> CurrentDateTotals(string date)
+    public async Task<TotalIncomeOrExpences> CurrentDateTotalsAsync(string date)
     {
         bool res = DateTime.TryParse(date, out DateTime comparsionDate);
         if (!res)
@@ -125,7 +125,7 @@ public class RecordFinanceService : IRecordFinanceService
         TotalIncomeOrExpences totalIncomeOrExpences = new TotalIncomeOrExpences();
         List<Record> dailyRecords = await db.Records.Where(p => p.Date == comparsionDate).ToListAsync();
 
-        if (dailyRecords.Count == 0)
+        if (!dailyRecords.Any())
         {
             return new TotalIncomeOrExpences();
         }
@@ -146,10 +146,10 @@ public class RecordFinanceService : IRecordFinanceService
     }
 
 
-    public async Task<List<RecordViewModel>> GetAllRecords()
+    public async Task<List<RecordViewModel>> GetAllRecordsAsync()
     {
         List<Record> records = await db.Records.ToListAsync();
-        if (records.Count == 0)
+        if (!records.Any())
         {
             return new List<RecordViewModel>();
         }
@@ -162,7 +162,7 @@ public class RecordFinanceService : IRecordFinanceService
     }
 
 
-    public async Task<List<RecordViewModel>> RangeDateReport(string startDate, string endDate)
+    public async Task<List<RecordViewModel>> RangeDateReportAsync(string startDate, string endDate)
     {
         bool res = await CheckDates(startDate, endDate);
         if (!res)
@@ -180,7 +180,7 @@ public class RecordFinanceService : IRecordFinanceService
     }
 
 
-    public async Task<TotalIncomeOrExpences> RangeDateTotals(string startDate, string endDate)
+    public async Task<TotalIncomeOrExpences> RangeDateTotalsAsync(string startDate, string endDate)
     {
 
         bool res = await CheckDates(startDate, endDate);
