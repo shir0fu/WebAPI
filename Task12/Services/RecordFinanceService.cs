@@ -1,25 +1,34 @@
 ﻿using System.Text.Json;
 using Task12.Models;
+using Task12.Dto;
+using Task12.ViewModels;
+using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 
 namespace Task12.Services;
 
 public interface IRecordFinanceService
 {
-    List<Record> AddRecord(JsonDocument record);
-    List<Record> UpdateRecord(JsonDocument record);
-    List<Record> DeleteRecord(int id);
+    Task<List<RecordViewModel>> AddRecord(RecordCreateDto record);
+    Task<List<RecordViewModel>> UpdateRecord(RecordUpdateDto record);
+    Task<bool> DeleteRecord(int id);
 
-    List<Record> RangeDateReport(string startDate, string endDate);
-    TotalIncomeOrExpences RangeDateTotals(string startDate, string endDate);
+    Task<List<RecordViewModel>> RangeDateReport(string startDate, string endDate);
+    Task<TotalIncomeOrExpences> RangeDateTotals(string startDate, string endDate);
 
-    TotalIncomeOrExpences CurrentDateTotals(string date);
-    List<Record> CurrentDateReport(string date);
+    Task<TotalIncomeOrExpences> CurrentDateTotals(string date);
+    Task<List<RecordViewModel>> CurrentDateReport(string date);
 
-    List<Record> GetAllRecords();
+    Task<List<RecordViewModel>> GetAllRecords();
 }
 
 public class RecordFinanceService : IRecordFinanceService
 {
+
+    MapperConfiguration config = new MapperConfiguration(cfg =>
+    cfg.CreateMap<Record, RecordViewModel>()
+    );
+
     ApplicationContext db;
     public RecordFinanceService(ApplicationContext context)
     {
@@ -27,86 +36,98 @@ public class RecordFinanceService : IRecordFinanceService
     }
 
 
-    public List<Record> AddRecord(JsonDocument record)
+    public async Task<List<RecordViewModel>> AddRecord(RecordCreateDto record)
     {
-        Record? newRecord = JsonSerializer.Deserialize<Record?>(record);
-        db.Records.Add(newRecord);
-        db.SaveChanges();
+        Record? newRecord = new Record();
 
-        return GetAllRecords();
+        newRecord.Value = record.Value;
+        newRecord.TypeId = record.TypeId;
+        newRecord.Description = record.Description;
+        newRecord.Date = record.Date;
+
+        await db.Records.AddAsync(newRecord);
+        await db.SaveChangesAsync();
+
+        return await GetAllRecords();
     }
 
 
-    public List<Record> DeleteRecord(int id)
+    public async Task<bool> DeleteRecord(int id)
     {
-        Record? record = db.Records.Find(id);
+        Record? record = await db.Records.FindAsync(id);
 
         if (record == null)
         {
-            return null;
+            return false;
         }
 
         db.Records.Remove(record);
-        db.SaveChanges();
+        await db.SaveChangesAsync();
 
-        return GetAllRecords();
+        return true;
+
     }
 
 
-    public List<Record> UpdateRecord(JsonDocument newRecord)
+    public async Task<List<RecordViewModel>> UpdateRecord(RecordUpdateDto newRecord)
     {
-        Record? newDbRecord = JsonSerializer.Deserialize<Record>(newRecord);
-        Record? record = db.Records.Find(newDbRecord.Id);
+        Record? record = await db.Records.FindAsync(newRecord.Id);
 
         if (record == null)
         {
-            return null;
+            return new List<RecordViewModel>();
         }
 
-        record.Value = newDbRecord.Value;
-        record.Description = newDbRecord.Description;
-        record.TypeName = newDbRecord.TypeName;
-        record.Date = newDbRecord.Date;
-        db.Records.Update(record);
-        db.SaveChanges();
+        record.Value = newRecord.Value;
+        record.Description = newRecord.Description;
+        record.TypeId = newRecord.TypeId;
+        record.Date = newRecord.Date;
 
-        return GetAllRecords();
+        db.Records.Update(record);
+        await db.SaveChangesAsync();
+
+        return await GetAllRecords();
     }
 
 
-    public List<Record> CurrentDateReport(string date)
+    public async Task<List<RecordViewModel>> CurrentDateReport(string date)
     {
         bool res = DateTime.TryParse(date, out DateTime comparsionDate);
         if (!res)
         {
-            return null;
+            return new List<RecordViewModel>();
         }
 
-        List<Record> records = db.Records.Where(p => p.Date == comparsionDate).ToList();
+        List<Record> records = await db.Records.Where(p => p.Date == comparsionDate).ToListAsync();
 
         if (records.Count == 0)
         {
-            return null;
+            return new List<RecordViewModel>();
         }
 
-        return records;
+
+        var mapper = new Mapper(config);
+        List<RecordViewModel> recordVM = new List<RecordViewModel>();
+        mapper.Map(records, recordVM);
+
+        return recordVM;
     }
 
 
-    public TotalIncomeOrExpences CurrentDateTotals(string date)
+    public async Task<TotalIncomeOrExpences> CurrentDateTotals(string date)
     {
         bool res = DateTime.TryParse(date, out DateTime comparsionDate);
         if (!res)
         {
-            return null;
+            return new TotalIncomeOrExpences();
         }
 
         TotalIncomeOrExpences totalIncomeOrExpences = new TotalIncomeOrExpences();
-        List<Record> dailyRecords = db.Records.Where(p => p.Date == comparsionDate).ToList();
+        List<Record> dailyRecords = await db.Records.Where(p => p.Date == comparsionDate).ToListAsync();
 
         if (dailyRecords.Count == 0)
         {
-            return null;
+            return new TotalIncomeOrExpences();
         }
 
         foreach (Record record in dailyRecords)
@@ -125,41 +146,51 @@ public class RecordFinanceService : IRecordFinanceService
     }
 
 
-    public List<Record> GetAllRecords()
+    public async Task<List<RecordViewModel>> GetAllRecords()
     {
-        List<Record> records = db.Records.ToList();
+        List<Record> records = await db.Records.ToListAsync();
         if (records.Count == 0)
         {
-            return null;
+            return new List<RecordViewModel>();
         }
 
-        return records;
+        var mapper = new Mapper(config);
+        List<RecordViewModel> recordVM = new List<RecordViewModel>();
+        mapper.Map(records, recordVM);
+
+        return recordVM;
     }
 
 
-    public List<Record> RangeDateReport(string startDate, string endDate)
+    public async Task<List<RecordViewModel>> RangeDateReport(string startDate, string endDate)
     {
-        bool res = CheckDates(startDate, endDate);
+        bool res = await CheckDates(startDate, endDate);
         if (!res)
         {
-            return null;
+            return new List<RecordViewModel>();
         }
 
-        return db.Records.Where(p => p.Date >= DateTime.Parse(startDate) && p.Date <= DateTime.Parse(endDate)).ToList();
+        List<Record> records = await db.Records.Where(p => p.Date >= DateTime.Parse(startDate) && p.Date <= DateTime.Parse(endDate)).ToListAsync();
+
+        var mapper = new Mapper(config);
+        List<RecordViewModel> recordVM = new List<RecordViewModel>();
+        mapper.Map(records, recordVM);
+
+        return recordVM;
     }
 
 
-    public TotalIncomeOrExpences RangeDateTotals(string startDate, string endDate)
+    public async Task<TotalIncomeOrExpences> RangeDateTotals(string startDate, string endDate)
     {
 
-        bool res = CheckDates(startDate, endDate);
+        bool res = await CheckDates(startDate, endDate);
         if (!res)
         {
-            return null;
+            return new TotalIncomeOrExpences();
         }
 
         TotalIncomeOrExpences totalIncomeOrExpences = new TotalIncomeOrExpences();
-        List<Record> records = db.Records.Where(p => p.Date >= DateTime.Parse(startDate) && p.Date <= DateTime.Parse(endDate)).ToList();
+        List<Record> records = await db.Records.Where(p => p.Date >= DateTime.Parse(startDate) && p.Date <= DateTime.Parse(endDate)).ToListAsync();
         
         foreach (Record record in records)
         {
@@ -176,7 +207,7 @@ public class RecordFinanceService : IRecordFinanceService
         return totalIncomeOrExpences;
     }
 
-    public bool CheckDates(string startDate, string endDate)
+    public async Task<bool> CheckDates(string startDate, string endDate)
     {
         bool res1 = DateTime.TryParse(startDate, out DateTime comparsionDate1);
         bool res2 = DateTime.TryParse(endDate, out DateTime comparsionDate2);
@@ -185,9 +216,9 @@ public class RecordFinanceService : IRecordFinanceService
             return false;
         }
 
-        Record firstRecord = db.Records.First();
+        Record firstRecord = await db.Records.FirstAsync();
         DateTime firstDate = firstRecord.Date;
-        List<Record> sortRecords = db.Records.OrderBy(p => p.Date).ToList();
+        List<Record> sortRecords = await db.Records.OrderBy(p => p.Date).ToListAsync();
         Record lastRecord = sortRecords.Last();
         DateTime lastDate = lastRecord.Date;
 

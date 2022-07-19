@@ -1,6 +1,6 @@
-﻿namespace Task12.Models;
+﻿namespace Task12.Dto;
 
-public class Record 
+public class RecordUpdateDto
 {
     public int Id { get; set; }
     public decimal Value { get; set; }

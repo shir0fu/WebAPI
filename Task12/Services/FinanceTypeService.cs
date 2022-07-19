@@ -1,23 +1,31 @@
 ﻿using System.Text.Json;
 using Task12.Models;
+using Task12.Dto;
+using Task12.ViewModels;
+using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 
 namespace Task12.Services;
 
 public interface IFinanceTypeService
 {
-    List<FinanceType> GetFinanceTypes();
-    List<FinanceType> GetEpencesTypes();
-    List<FinanceType> GetIncomeTypes();
+    Task<List<FinanceTypeViewModel>> GetFinanceTypes();
+    Task<List<FinanceTypeViewModel>> GetExpencesTypes();
+    Task<List<FinanceTypeViewModel>> GetIncomeTypes();
 
-    List<FinanceType> AddFinanceType(JsonDocument financeType);
+    Task<List<FinanceTypeViewModel>> AddFinanceType(FinanceTypeCreateDto financeType);
 
-    List<FinanceType> DeleteFinanceType(int id);
+    Task<bool> DeleteFinanceType(int id);
 
-    List<FinanceType> UpdateFinanceType(JsonDocument financeType);
+    Task<List<FinanceTypeViewModel>> UpdateFinanceType(FinanceTypeUpdateDto financeType);
 }
 
 public class FinanceTypeService : IFinanceTypeService
 {
+    MapperConfiguration config = new MapperConfiguration(cfg =>
+    cfg.CreateMap<FinanceType, FinanceTypeViewModel>()
+    );
+
     ApplicationContext db;
     public FinanceTypeService(ApplicationContext context)
     {
@@ -25,87 +33,109 @@ public class FinanceTypeService : IFinanceTypeService
     }
 
 
-    public List<FinanceType> AddFinanceType(JsonDocument newFinanceType)
+    public async Task<List<FinanceTypeViewModel>> AddFinanceType(FinanceTypeCreateDto newFinanceType)
     {
-        FinanceType? financeType = JsonSerializer.Deserialize<FinanceType>(newFinanceType);
 
-        db.Types.Add(financeType);
-        db.SaveChanges();
+        FinanceType? financeType = new FinanceType();
 
-        return GetFinanceTypes();
+        financeType.TypeName = newFinanceType.TypeName;
+        financeType.OperationType = newFinanceType.OperationType;
+
+        await db.Types.AddAsync(financeType);
+        await db.SaveChangesAsync();
+
+        return await GetFinanceTypes();
     }
 
 
-    public List<FinanceType> UpdateFinanceType(JsonDocument newFinanceTypeJson)
+    public async Task<List<FinanceTypeViewModel>> UpdateFinanceType(FinanceTypeUpdateDto newFinanceType)
     {
-        FinanceType? newFinanceType = JsonSerializer.Deserialize<FinanceType>(newFinanceTypeJson);
 
-        FinanceType? financeType = db.Types.Find(newFinanceType.Id);
+        FinanceType? financeType = await db.Types.FindAsync(newFinanceType.Id);
 
         if (financeType == null)
         {
-            return null;
+            return new List<FinanceTypeViewModel>();
         }
 
         financeType.OperationType = newFinanceType.OperationType;
         financeType.TypeName = newFinanceType.TypeName;
-        db.Types.Update(financeType);
-        db.SaveChanges();
 
-        return GetFinanceTypes();
+        db.Types.Update(financeType);
+        await db.SaveChangesAsync();
+
+        return await GetFinanceTypes();
     }
 
 
-    public List<FinanceType> DeleteFinanceType(int id)
+    public async Task<bool> DeleteFinanceType(int id)
     {
-        FinanceType? financeType = db.Types.Find(id);
+        FinanceType? financeType = await db.Types.FindAsync(id);
 
         if (financeType == null)
         {
-            return null;
+            return false;
+        }
+
+        List<Record> records = await db.Records.Where(p => p.TypeId == id).ToListAsync();
+        if (records.Count != 0)
+        {
+            return false;
         }
 
         db.Types.Remove(financeType);
-        db.SaveChanges();
+        await db.SaveChangesAsync();
 
-        return GetFinanceTypes();
+        return true;
     }
 
 
-    public List<FinanceType> GetEpencesTypes()
+    public async Task<List<FinanceTypeViewModel>> GetExpencesTypes()
     {
-        List<FinanceType> financeTypes = db.Types.Where(p => p.OperationType == false).ToList();
+        List<FinanceType> financeTypes = await db.Types.Where(p => !p.OperationType).ToListAsync();
 
         if (financeTypes.Count == 0)
         {
-            return null;
+            return new List<FinanceTypeViewModel>();
         }
 
-        return financeTypes;
+        var mapper = new Mapper(config);
+        List<FinanceTypeViewModel> financeTypesVM = new List<FinanceTypeViewModel>();
+        mapper.Map(financeTypes, financeTypesVM);
+
+        return financeTypesVM;
     }
 
-    public List<FinanceType> GetIncomeTypes()
+    public async Task<List<FinanceTypeViewModel>> GetIncomeTypes()
     {
-        List<FinanceType> financeTypes = db.Types.Where(p => p.OperationType == true).ToList();
+        List<FinanceType> financeTypes = await db.Types.Where(p => p.OperationType == true).ToListAsync();
 
         if (financeTypes.Count == 0)
         {
-            return null;
+            return new List<FinanceTypeViewModel>();
         }
 
-        return financeTypes;
+        var mapper = new Mapper(config);
+        List<FinanceTypeViewModel> financeTypesVM = new List<FinanceTypeViewModel>();
+        mapper.Map(financeTypes, financeTypesVM);
+
+        return financeTypesVM;
     } 
 
-    public List<FinanceType> GetFinanceTypes()
+    public async Task<List<FinanceTypeViewModel>> GetFinanceTypes()
     {
-        List<FinanceType> financeTypes = db.Types.ToList();
+        List<FinanceType> financeTypes = await db.Types.ToListAsync();
 
         if (financeTypes.Count == 0)
         {
-            return null;
+            return new List<FinanceTypeViewModel>();
         }
 
-        return financeTypes;
+        var mapper = new Mapper(config);
+        List<FinanceTypeViewModel> financeTypesVM = new List<FinanceTypeViewModel>();
+        mapper.Map(financeTypes, financeTypesVM);
+
+        return financeTypesVM;
     }
 
 }

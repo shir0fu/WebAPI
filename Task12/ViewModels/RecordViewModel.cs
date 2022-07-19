@@ -1,6 +1,6 @@
-﻿namespace Task12.Models;
+﻿namespace Task12.ViewModels;
 
-public class Record 
+public class RecordViewModel
 {
     public int Id { get; set; }
     public decimal Value { get; set; }

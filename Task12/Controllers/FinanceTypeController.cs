@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using Task12.Services;
+using Task12.ViewModels;
+using Task12.Dto;
 
 namespace Task12.Controllers
 {
@@ -15,70 +17,70 @@ namespace Task12.Controllers
 
 
         [HttpGet("types")]
-        public IActionResult GetFinanceTypes()
+        public async Task<IActionResult> GetFinanceTypes()
         {
-            var json = _service.GetFinanceTypes();
+            List<FinanceTypeViewModel> json = await _service.GetFinanceTypes();
 
-            if (json != null)
+            if (json.Count != 0)
             {
-                return Json(json);
+                return Ok(json);
             }
             return NotFound(new { message = "Missing any finance types" });
         }
 
 
         [HttpGet("types/expences")]
-        public IActionResult GetEpencesTypes()
+        public async Task<IActionResult> GetExpencesTypes()
         {
-            var json = _service.GetEpencesTypes();
+            List<FinanceTypeViewModel> json = await _service.GetExpencesTypes();
 
-            if (json != null)
+            if (json.Count != 0)
             {
-                return Json(json);
+                return Ok(json);
             }
             return NotFound(new { message = "Missing expences types" });
         }
 
 
         [HttpGet("types/income")]
-        public IActionResult GetIncomeTypes()
+        public async Task<IActionResult> GetIncomeTypes()
         {
-            var json = _service.GetIncomeTypes();
+            List<FinanceTypeViewModel> json = await _service.GetIncomeTypes();
 
-            if (json != null)
+            if (json.Count != 0)
             {
-                return Json(json);
+                return Ok(json);
             }
             return NotFound(new { message = "Missing income types" });
         }
 
 
         [HttpPost("types/add")]
-        public IActionResult AddType([FromBody] JsonDocument newFinanceType)
+        public async Task<IActionResult> AddType([FromBody] FinanceTypeCreateDto newFinanceType)
         {
-            return Json(_service.AddFinanceType(newFinanceType));
+            return Ok(await _service.AddFinanceType(newFinanceType));
         }
 
 
         [HttpDelete("types/delete/{id}")]
-        public IActionResult DeleteFinancetype(int id)
+        public async Task<IActionResult> DeleteFinancetype([FromRoute]int id)
         {
-            var json = _service.DeleteFinanceType(id);
-            if (json != null)
+            bool res = await _service.DeleteFinanceType(id);
+            if (res)
             {
-                return Json(json);
+                return Ok(new { message = "Deleted succesfully" });
             }
-            return NotFound(new { message = "Type not found" });
+            return NotFound(new { message = "Delete failed" });
         }
 
 
         [HttpPut("types/change")]
-        public IActionResult ChangeFinanceType([FromBody] JsonDocument newFinanceType)
+        public async Task<IActionResult> ChangeFinanceType([FromBody] FinanceTypeUpdateDto newFinanceType)
         {
-            var json = _service.UpdateFinanceType(newFinanceType);
-            if (json != null)
+            List<FinanceTypeViewModel> json = await _service.UpdateFinanceType(newFinanceType);
+            if (json.Count != 0)
             {
-                return Json(json);
+                return Ok(json);
             }
             return NotFound(new { message = "Type not found" });
         }
